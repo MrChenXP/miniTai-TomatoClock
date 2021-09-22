@@ -4,20 +4,85 @@ const {
     BrowserWindow
 } = require('electron')
 
+
 // 创建一个 新的浏览窗口 启用了节点集成
 function createWindow() {
     const win = new BrowserWindow({
         width: 800,
         height: 600,
         webPreferences: {
-            nodeIntegration: true
+            nodeIntegration: true,
+            contextIsolation: false
         }
     })
+
+
+
+        /** 最小化到系统托盘 */
+        const { Tray, Menu } = require('electron');
+        const path = require('path');
+        let tray = null;  // 用来存放系统托盘
+
+        // 创建系统托盘
+        tray = new Tray(path.join(__dirname, 'public/icon.png')); // (__dirname, 'img/icon.png')
+        // 菜单模板
+        const menu = [
+            {
+                label: '显示主窗口',
+                id: 'show-window',
+                enabled: !win.show,
+                click() {
+                    win.show();
+                }
+            },
+            {
+            label: '退出',
+            role: 'quit'
+            }
+        ];
+        // 给系统托盘设置菜单
+        tray.setContextMenu(Menu.buildFromTemplate(menu));
+        // 给托盘图标设置气球提示
+        tray.setToolTip('Electron测试');
 
     // 将 index.html 文件加载到此窗口中
     win.loadFile('index.html')
     // 打开开发人员工具
     win.webContents.openDevTools()
+    
+
+    win.on('minimize', ev => {
+        // 阻止最小化
+        ev.preventDefault();
+        // 隐藏窗口
+        win.hide();
+      });
+    
+      // 托盘图标被双击
+      tray.on('double-click', () => {
+        // 显示窗口
+        win.show();
+      });
+    
+      // 窗口隐藏
+      win.on('hide', () => {
+        // 启用菜单的显示主窗口项
+        menu.getMenuItemById('show-window').enabled = true;
+        // 重新设置系统托盘菜单
+        tray.setContextMenu(menu);
+      });
+    
+      // 窗口显示
+      win.on('show', () => {
+        // 禁用显示主窗口项
+        menu.getMenuItemById('show-window').enabled = false;
+        // 重新设置系统托盘菜单
+        tray.setContextMenu(menu);
+      });
+
+
+    
+        
 }
 
 // 初始化 时 创建一个新的窗口
@@ -36,3 +101,4 @@ app.on('activate', () => {
         createWindow()
     }
 })
+
